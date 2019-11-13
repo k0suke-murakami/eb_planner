@@ -340,8 +340,17 @@ void QPPlanner::doPlan(
     }
     else
     {
-      lower_bound[i] = -1000;
-      upper_bound[i] =  1000;
+      if(i < number_of_sampling_points_)
+      {
+        lower_bound[i] =  reference_path.x_[i] - 1.3;
+        upper_bound[i] =  reference_path.x_[i] + 1.3;
+      }
+      else
+      {
+        lower_bound[i] =  reference_path.y_[i-number_of_sampling_points_] - 1.3;
+        upper_bound[i] =  reference_path.y_[i-number_of_sampling_points_] + 1.3;
+      }
+      
     }
     g_matrix[i] = tmp_b(i);
   }
@@ -374,15 +383,11 @@ void QPPlanner::doPlan(
   std::chrono::duration_cast<std::chrono::nanoseconds>(end3 - begin3);
   std::cout <<"solve " <<elapsed_time3.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
   
-  // write here later
-  std::cerr << "dddd"  << std::endl;
   for(size_t i = 0; i < number_of_sampling_points_; i++)
   {
-    
     geometry_msgs::Pose pose_in_lidar_tf;
     pose_in_lidar_tf.position.x = result[i];
     pose_in_lidar_tf.position.y = result[i+number_of_sampling_points_];
-    std::cerr << "resutl y " << result[i] << std::endl;
     pose_in_lidar_tf.position.z = in_reference_waypoints_in_lidar.front().pose.pose.position.z;
     pose_in_lidar_tf.orientation.w = 1.0;
     geometry_msgs::Pose pose_in_map_tf;
