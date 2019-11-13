@@ -343,8 +343,6 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
             incremental_goal_point = in_waypoints_ptr_->waypoints[i].pose.pose.position;
           }
         }
-        std::cerr << "min dist " << min_dist << std::endl;
-        std::cerr << "min dist " << min_dist_to_goal << std::endl;
         geometry_msgs::Point point1_in_gridmap;
         tf2::doTransform(incremental_start_point, point1_in_gridmap, *map2gridmap_tf_);
         geometry_msgs::Point point2_in_gridmap;
@@ -503,7 +501,7 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
             *map2gridmap_tf_,
             modified_reference_path_in_map,
             modified_reference_path_in_gridmap);
-      std::cerr << "size of incremental path " << modified_reference_path_in_map.size() << std::endl;
+      // std::cerr << "size of incremental path " << modified_reference_path_in_map.size() << std::endl;
       incremental_reference_path_in_map_ptr_.reset(
         new std::vector<autoware_msgs::Waypoint>(modified_reference_path_in_map));
       incremental_reference_path_in_gridmap_ptr_.reset(
@@ -556,7 +554,7 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
     if(accumulated_distance < 30)
     {
       double extra_dist = 30 - accumulated_distance;
-      std::cerr << "extra dist " << extra_dist << std::endl;
+      // std::cerr << "extra dist " << extra_dist << std::endl;
       geometry_msgs::Point extra_point;
       extra_point.x = input_waypoints_.front().pose.pose.position.x - extra_dist;
       extra_point.y = input_waypoints_.front().pose.pose.position.y;
@@ -585,14 +583,14 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
     std::vector<geometry_msgs::Point> debug_reference_points;
     std::vector<geometry_msgs::Point> debug_reference_points2;
     std::vector<geometry_msgs::Point> debug_reference_points3;
-    // eb_planner_ptr_->doPlan(*gridmap2map_tf_,
-    //                         *in_pose_ptr_,
-    //                         grid_map,
-    //                         input_waypoints_,
-    //                         out_waypoints,
-    //                         debug_reference_points,
-    //                         debug_reference_points2,
-    //                         debug_reference_points3);
+    eb_planner_ptr_->doPlan(*gridmap2map_tf_,
+                            *in_pose_ptr_,
+                            grid_map,
+                            input_waypoints_,
+                            out_waypoints,
+                            debug_reference_points,
+                            debug_reference_points2,
+                            debug_reference_points3);
     // std::cerr << "final qp wp size " << out_waypoints.size() << std::endl;
     std::cerr << "--------------" << std::endl;
     
@@ -678,16 +676,16 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
     debug_compensatec_ref_points.color.r = 1.0f;
     debug_compensatec_ref_points.color.g = 1.0f;
     debug_compensatec_ref_points.color.a = 1;
-    std::cerr << "tmp point---"  << std::endl;
+    // std::cerr << "tmp point---"  << std::endl;
     for(const auto& waypoint: input_waypoints_)
     {
-      std::cerr <<  waypoint.pose.pose.position.x << std::endl;
+      // std::cerr <<  waypoint.pose.pose.position.x << std::endl;
       debug_compensatec_ref_points.points.push_back(waypoint.pose.pose.position);
     }
-    std::cerr << "y" << std::endl;
+    // std::cerr << "y" << std::endl;
     for(const auto& waypoint: input_waypoints_)
     {
-      std::cerr <<  waypoint.pose.pose.position.y << std::endl;
+      // std::cerr <<  waypoint.pose.pose.position.y << std::endl;
       debug_compensatec_ref_points.points.push_back(waypoint.pose.pose.position);
     }
     points_marker_array.markers.push_back(debug_compensatec_ref_points);
