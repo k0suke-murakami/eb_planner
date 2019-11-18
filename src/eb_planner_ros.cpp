@@ -84,8 +84,8 @@ QPPlannerROS::QPPlannerROS()
   grid_map_sub_ = nh_.subscribe("/semantics/costmap", 1, &QPPlannerROS::gridmapCallback, this);
   // double timer_callback_dt = 0.05;
   // double timer_callback_delta_second = 0.1;
-  double timer_callback_delta_second = 1.0;
-  // double timer_callback_delta_second = 0.5;
+  // double timer_callback_delta_second = 1.0;
+  double timer_callback_delta_second = 0.5;
   timer_ = nh_.createTimer(ros::Duration(timer_callback_delta_second), &QPPlannerROS::timerCallback, this);
 }
 
@@ -395,22 +395,6 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
                 *map2gridmap_tf_,
                 modified_reference_path_in_map,
                 modified_reference_path_in_gridmap);
-          std::cerr << "start " << incremental_start_point.x << " "<<
-                                  incremental_start_point.y << std::endl;
-          std::cerr << "goal " << incremental_goal_point.x << " "<<
-                                  incremental_goal_point.y << std::endl;
-          if(got_modified_incremental_reference_path)
-          {
-            for(const auto& point: modified_reference_path_in_map)
-            {
-              std::cerr << "point " << point.pose.pose.position.x << " "
-                                    << point.pose.pose.position.y << std::endl;
-            }
-          }
-          else
-          {
-            std::cerr << "fails to find a path"  << std::endl;
-          }
           
           incremental_reference_path_in_map_ptr_->insert(
             incremental_reference_path_in_map_ptr_->end(),
@@ -565,19 +549,14 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
       input_waypoints_.insert(input_waypoints_.begin(), dummy_wp);
     }
     
-    // if(accumulated_distance < 30)
-    // {
-    //   geometry_msgs::Point debug_past_reference_point = input_waypoints_in_gridmap.front().pose.pose.position;
-    //   double debug_accumulated_distance = 0;
-    //   for(const auto& point: input_waypoints_in_gridmap)
-    //   {
-    //     geometry_msgs::Point reference_point = point.pose.pose.position;
-    //     double distance = calculate2DDistace(reference_point, debug_past_reference_point);
-    //     debug_accumulated_distance += distance;
-    //     debug_past_reference_point = reference_point;
-    //   }
-    //   std::cerr << "debug acc dist " << debug_accumulated_distance << std::endl;
-    // }
+    std::vector<geometry_msgs::Point> subscribed_points_in_lidar;
+    for(const auto point: in_waypoints_ptr_->waypoints)
+    {
+      geometry_msgs::Point tmp_point;
+      tf2::doTransform(point.pose.pose.position, tmp_point, *map2gridmap_tf_);
+      subscribed_points_in_lidar.push_back(tmp_point);
+    }
+    
     
     std::vector<autoware_msgs::Waypoint> out_waypoints;
     std::vector<geometry_msgs::Point> debug_reference_points;
@@ -587,6 +566,7 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
                             *in_pose_ptr_,
                             grid_map,
                             input_waypoints_,
+                            subscribed_points_in_lidar,
                             out_waypoints,
                             debug_reference_points,
                             debug_reference_points2,
@@ -794,5 +774,10 @@ void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
     
     markers_pub_.publish(points_marker_array);
     safety_waypoints_pub_.publish(*in_waypoints_ptr_);
+    autoware_msgs::Lane out_lane;
+    out_lane.header = in_waypoints_ptr_->header;
+    out_lane.waypoints = out_waypoints;
+    safety_waypoints_pub_.publish(out_lane);
+    // safety_waypoints_pub_.publish(*in_waypoints_ptr_);
   }
 }

@@ -88,7 +88,8 @@ std::vector<Node> expandNode(Node& parent_node,
   Eigen::Vector2d delta_child_p;
   delta_child_p << current_r,
                    0;
-  double delta_theta = 2*M_PI/36.0;
+  // double delta_theta = 2*M_PI/36.0;
+  double delta_theta = 2*M_PI/54.0;
   for(double theta = 0; theta < 2*M_PI; theta += delta_theta)
   {
     Eigen::Matrix2d rotation;
@@ -289,6 +290,7 @@ Eigen::Vector2d ModifiedReferencePathGenerator::generateNewPosition(
   double x3 = path_point3(0);
   double y3 = path_point3(1);
   
+  const double resolution_of_gridmap = clearance_map.getResolution();
   //calculate initial e
   Eigen::Vector2d e;
   double ex, ey;
@@ -332,7 +334,7 @@ Eigen::Vector2d ModifiedReferencePathGenerator::generateNewPosition(
     try 
     {
       double r = clearance_map.atPosition(clearance_map.getLayers().back(),
-                                              e)*0.1;
+                                              e)*resolustion_of_gridmap;
       if(r > min_r && k < max_k)
       {
         return e;
@@ -349,8 +351,8 @@ Eigen::Vector2d ModifiedReferencePathGenerator::generateNewPosition(
       std::cerr << "WARNING: could not find clearance in generateNewPostion " << std::endl;
       return path_point2;
     }
-    result_r = clearance_map.atPosition(clearance_map.getLayers().back(),e)*0.1;
-  }while(calculate2DDistace(e, path_point2) > 0.1);
+    result_r = clearance_map.atPosition(clearance_map.getLayers().back(),e)*resolution_of_gridmap;
+  }while(calculate2DDistace(e, path_point2) > resolution_of_gridmap);
   return path_point2;
 }
 
@@ -523,12 +525,13 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   std::vector<Node> s_open;
   Node* a = new Node();
   Node initial_node;
-  double clearance_to_m = 0.1;
+  // double clearance_to_m = 0.1;
+  const double resolution_of_gridmap = clearance_map.getResolution();
   // const double min_r = 1.6;
   // const double min_r = 2.0;
-  const double max_r = 10;
+  const double max_r = min_radius_+0.5;
   initial_node.p = start_p;
-  double initial_r = clearance_map.atPosition(layer_name, initial_node.p) * clearance_to_m ;
+  double initial_r = clearance_map.atPosition(layer_name, initial_node.p) * resolution_of_gridmap;
   if(initial_r < min_radius_)
   {
     initial_r = min_radius_;
@@ -546,7 +549,7 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   
   Node goal_node;
   goal_node.p = goal_p;
-  double goal_r = clearance_map.atPosition(layer_name, goal_node.p) * clearance_to_m ;
+  double goal_r = clearance_map.atPosition(layer_name, goal_node.p) * resolution_of_gridmap;
   if(goal_r < min_radius_)
   {
     goal_r = min_radius_;
@@ -626,87 +629,10 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   }while(current_node.parent_node != nullptr);
   
   
-  // path_points.push_back(goal_path_point);
-  std::cerr << "size of path points " << path_points.size() << std::endl;
-  
-  //smoothing
-  calculateCurvatureForPathPoints(path_points);
-  
-  std::vector<PathPoint> refined_path = path_points;
-  
-  double new_j, prev_j;
-  do
-  {
-    prev_j = calculateSmoothness(refined_path);
-    
-    if(refined_path.size() < 3)
-    {
-      std::cerr << "skip smoothing since size of path points is less than 3"  << std::endl;
-      break;
-    }
-    std::vector<PathPoint> new_refined_path;
-    new_refined_path.push_back(refined_path.front());
-    new_refined_path.push_back(refined_path[1]);
-    for(size_t i = 2; i < (refined_path.size()- 1); i++)
-    {
-      const double min_turning_radius = 5;
-      const double max_k = 1/min_turning_radius;
-      const double resolution_of_gridmap = clearance_map.getResolution();
-      double rs = clearance_map.atPosition(clearance_map.getLayers().back(),
-                                              refined_path[i].position)*0.1;
-      // std::cerr << "target clearance " << rs << std::endl;
-      Eigen::Vector2d new_position = 
-               generateNewPosition(refined_path[i - 2].position,
-                                refined_path[i - 1].position,
-                                refined_path[i].position,
-                                refined_path[i+1].position,
-                                clearance_map,
-                                min_radius_,
-                                max_k,
-                                resolution_of_gridmap);
-      double clearance;
-      try 
-      {
-        clearance = clearance_map.atPosition(clearance_map.getLayers().back(),
-                                             refined_path[i].position)*0.1;
-      }
-      catch (const std::out_of_range& e) 
-      {
-        std::cerr << "WARNING: could not find clearance for goal point " << std::endl;
-      }
-      double curvature = calculateCurvatureFromThreePoints(
-                               refined_path[i-1].position,
-                               refined_path[i].position,
-                               refined_path[i+1].position);
-      PathPoint new_path_point;
-      new_path_point.position = new_position;
-      new_path_point.clearance = clearance;
-      new_path_point.curvature = curvature;
-      new_refined_path.push_back(new_path_point);
-    }
-    new_refined_path.push_back(refined_path.back());
-    new_j = calculateSmoothness(new_refined_path);
-    
-    double delta_j = std::abs(new_j - prev_j)/new_j;
-    // std::cerr << "prev j " << prev_j << std::endl;
-    // std::cerr << "new j " << new_j << std::endl;
-    // std::cerr << "delta j" << delta_j << std::endl;
-    if(new_j < prev_j)
-    {
-      refined_path = new_refined_path;
-      if(delta_j < 0.001)
-      {
-        std::cerr << "break!" << std::endl;
-        break;  
-      }
-    }
-  } while (new_j < prev_j);
-  
-  
   
   std::vector<double> tmp_x;
   std::vector<double> tmp_y;
-  for(const auto& point: refined_path)
+  for(const auto& point: path_points)
   {
     // std::cerr << "poitn " << point.position(0) << std::endl;
     tmp_x.push_back(point.position(0));
@@ -736,31 +662,6 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   std::chrono::nanoseconds chunk_elapsed_time = 
      std::chrono::duration_cast<std::chrono::nanoseconds>(
        end_a_star_plus_rule_smooth - begin_a_star_plus_rule_smooth);
-  std::cout <<"a star + rule smooth " <<chunk_elapsed_time.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
-  
-  // // 1. 現在日時を取得
-  // std::chrono::high_resolution_clock::time_point begin_spline = std::chrono::high_resolution_clock::now();
-    
-  // ReferencePath reference_path(tmp_x, tmp_y, 0.2);
-  // int number_of_sampling_points = 200;
-  // debug_modified_smoothed_reference_path.clear();
-  // for(size_t i = 0;i < number_of_sampling_points; i++)
-  // {
-  //   geometry_msgs::Pose pose_in_lidar_tf;
-  //   pose_in_lidar_tf.position.x = reference_path.x_[i];
-  //   pose_in_lidar_tf.position.y = reference_path.y_[i];
-  //   pose_in_lidar_tf.position.z = start_point_in_lidar_tf.z;
-  //   pose_in_lidar_tf.orientation.w = 1.0;
-  //   geometry_msgs::Pose pose_in_map_tf;
-  //   tf2::doTransform(pose_in_lidar_tf, pose_in_map_tf, lidar2map_tf);
-  //   autoware_msgs::Waypoint waypoint;
-  //   waypoint.pose.pose = pose_in_map_tf;
-  //   debug_modified_smoothed_reference_path.push_back(waypoint);   
-  // }
-  // // 3. 現在日時を再度取得
-  // std::chrono::high_resolution_clock::time_point end_spline = std::chrono::high_resolution_clock::now();
-  // // 経過時間を取得
-  // std::chrono::nanoseconds cspline_elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_spline - begin_spline);
-  // std::cout <<"cubic spline interpolation " <<cspline_elapsed_time.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
+  std::cout <<"a star " <<chunk_elapsed_time.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
   return true;
 }

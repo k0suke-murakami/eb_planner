@@ -46,6 +46,7 @@ void QPPlanner::doPlan(
   const geometry_msgs::PoseStamped& in_current_pose,
   const grid_map::GridMap& grid_map,
   const std::vector<autoware_msgs::Waypoint>& in_reference_waypoints_in_lidar,
+  const std::vector<geometry_msgs::Point>& subscribed_points_in_lidar,
   std::vector<autoware_msgs::Waypoint>& out_waypoints,
   std::vector<geometry_msgs::Point>& debug_interpolated_points,
   std::vector<geometry_msgs::Point>& debug_interpolated_points2,
@@ -66,7 +67,7 @@ void QPPlanner::doPlan(
     tmp_y.push_back(point.pose.pose.position.y); 
   }
   ReferencePath reference_path(tmp_x, tmp_y, 0.2);
-  std::cerr << "reference path size " << reference_path.x_.size() << std::endl;
+  // std::cerr << "reference path size " << reference_path.x_.size() << std::endl;
   
   for (size_t i = 0; i < number_of_sampling_points_; i++)
   {
@@ -294,6 +295,63 @@ void QPPlanner::doPlan(
     }
   }
   
+  size_t min_index = 0;
+  double min_dist = 99999;
+  for (size_t i = 0; i < subscribed_points_in_lidar.size(); i++)
+  {
+    double dx = subscribed_points_in_lidar[i].x - reference_path.x_.front();
+    double dy = subscribed_points_in_lidar[i].y - reference_path.y_.front();
+    double dist = std::sqrt(std::pow(dx, 2)+ std::pow(dy, 2));
+    if(dist < min_dist)
+    {
+      min_dist = dist;
+      min_index = i;
+    }
+  }
+  double first_yaw=0;
+  if((min_index+1)< subscribed_points_in_lidar.size())
+  {
+    double dx = subscribed_points_in_lidar[min_index+1].x -
+                subscribed_points_in_lidar[min_index].x;
+    double dy = subscribed_points_in_lidar[min_index+1].y -
+                subscribed_points_in_lidar[min_index].y;
+    first_yaw = std::atan2(dy, dx);
+    // std::cerr << "first yaw " << first_yaw << std::endl;
+  }
+  else
+  {
+    std::cerr << "oh my god"  << std::endl;
+  }
+  
+  min_index = 0;
+  min_dist = 99999;
+  for (size_t i = 0; i < subscribed_points_in_lidar.size(); i++)
+  {
+    double dx = subscribed_points_in_lidar[i].x - reference_path.x_.back();
+    double dy = subscribed_points_in_lidar[i].y - reference_path.y_.back();
+    double dist = std::sqrt(std::pow(dx, 2)+ std::pow(dy, 2));
+    if(dist < min_dist)
+    {
+      min_dist = dist;
+      min_index = i;
+    }
+  }
+  double last_yaw=0;
+  if((min_index+1)< subscribed_points_in_lidar.size())
+  {
+    double dx = subscribed_points_in_lidar[min_index+1].x -
+                subscribed_points_in_lidar[min_index].x;
+    double dy = subscribed_points_in_lidar[min_index+1].y -
+                subscribed_points_in_lidar[min_index].y;
+    last_yaw = std::atan2(dy, dx);
+    // std::cerr << "last yaw " << last_yaw << std::endl;
+  }
+  else
+  {
+    std::cerr << "oh my god"  << std::endl;
+  }
+  
+  
   Eigen::MatrixXd tmp_b = Eigen::MatrixXd::Identity(number_of_sampling_points_, number_of_sampling_points_);
   for (int i = 0; i < number_of_sampling_points_*2; ++i)
   {
@@ -305,13 +363,17 @@ void QPPlanner::doPlan(
     }
     else if(i == 1)
     {
-      lower_bound[i] = reference_path.x_[i];
-      upper_bound[i] = reference_path.x_[i];
+      // lower_bound[i] = reference_path.x_[i];
+      // upper_bound[i] = reference_path.x_[i];
+      lower_bound[i] = reference_path.x_[i-1]+0.2*std::cos(first_yaw);
+      upper_bound[i] = reference_path.x_[i-1]+0.2*std::cos(first_yaw);
     }
     else if(i == number_of_sampling_points_-2)
     {
-      lower_bound[i] = reference_path.x_[i];
-      upper_bound[i] = reference_path.x_[i];
+      // lower_bound[i] = reference_path.x_[i];
+      // upper_bound[i] = reference_path.x_[i];
+      lower_bound[i] = reference_path.x_[i+1]-0.2*std::cos(last_yaw);
+      upper_bound[i] = reference_path.x_[i+1]-0.2*std::cos(last_yaw);
     }
     else if(i == number_of_sampling_points_-1)
     {
@@ -325,13 +387,17 @@ void QPPlanner::doPlan(
     }
     else if(i == number_of_sampling_points_+1)
     {
-      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
-      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_-1]+0.2*std::sin(first_yaw);
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_-1]+0.2*std::sin(first_yaw);
     }
     else if(i == number_of_sampling_points_*2-2)
     {
-      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
-      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_+1]-0.2*std::sin(last_yaw);
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_+1]-0.2*std::sin(last_yaw);
     }
     else if(i == number_of_sampling_points_*2-1)
     {
@@ -342,13 +408,13 @@ void QPPlanner::doPlan(
     {
       if(i < number_of_sampling_points_)
       {
-        lower_bound[i] =  reference_path.x_[i] - 1.3;
-        upper_bound[i] =  reference_path.x_[i] + 1.3;
+        lower_bound[i] =  reference_path.x_[i] - 0.5;
+        upper_bound[i] =  reference_path.x_[i] + 0.5;
       }
       else
       {
-        lower_bound[i] =  reference_path.y_[i-number_of_sampling_points_] - 1.3;
-        upper_bound[i] =  reference_path.y_[i-number_of_sampling_points_] + 1.3;
+        lower_bound[i] =  reference_path.y_[i-number_of_sampling_points_] - 0.5;
+        upper_bound[i] =  reference_path.y_[i-number_of_sampling_points_] + 0.5;
       }
       
     }
@@ -394,6 +460,9 @@ void QPPlanner::doPlan(
     tf2::doTransform(pose_in_lidar_tf, pose_in_map_tf, lidar2map_tf);
     autoware_msgs::Waypoint waypoint;
     waypoint.pose.pose = pose_in_map_tf;
-    out_waypoints.push_back(waypoint); 
+    if(pose_in_lidar_tf.position.x > 0)
+    {
+      out_waypoints.push_back(waypoint); 
+    }
   }
 }

@@ -1,6 +1,6 @@
 <launch>
   <arg name="only_testing_modified_global_path" default="false"/>
-  <arg name="min_radius" default="1.2"/>
+  <arg name="min_radius" default="1.4"/>
   <node pkg="eb_planner" type="eb_planner" name="eb_planner" output="screen">
     <param name="only_testing_modified_global_path"   value="$(arg only_testing_modified_global_path)" />
     <param name="min_radius"   value="$(arg min_radius)" />
