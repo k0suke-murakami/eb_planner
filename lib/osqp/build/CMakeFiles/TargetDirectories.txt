@@ -1,6 +1,0 @@
-/home/kosuke/codes/python/sample/code/build/CMakeFiles/rebuild_cache.dir
-/home/kosuke/codes/python/sample/code/build/CMakeFiles/edit_cache.dir
-/home/kosuke/codes/python/sample/code/build/CMakeFiles/example.dir
-/home/kosuke/codes/python/sample/code/build/CMakeFiles/emosqpstatic.dir
-/home/kosuke/codes/python/sample/code/build/src/osqp/CMakeFiles/edit_cache.dir
-/home/kosuke/codes/python/sample/code/build/src/osqp/CMakeFiles/rebuild_cache.dir

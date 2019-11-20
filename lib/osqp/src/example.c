@@ -10,8 +10,6 @@ int main(int argc, char **argv) {
     osqp_solve(&workspace);
 
     // Print status
-    printf("Status:                %.4e\n", (&workspace)->solution->x[0]);
-    printf("Status:                %.4e\n", (&workspace)->solution->x[1]);
     printf("Status:                %s\n", (&workspace)->info->status);
     printf("Number of iterations:  %d\n", (int)((&workspace)->info->iter));
     printf("Objective value:       %.4e\n", (&workspace)->info->obj_val);
