@@ -2,15 +2,9 @@
 #include <geometry_msgs/TransformStamped.h>
 
 #include <tf2/utils.h>
-// #include <tf/transform_datatypes.h>
 
-// headers in Eigen
-// #include <Eigen/Dense>
 #include <distance_transform/distance_transform.hpp>
 #include <grid_map_core/GridMap.hpp>
-#include <qpOASES.hpp>
-#include <qpOASES/QProblem.hpp>
-// #include <qpoases_vendor/qpOASES.hpp>
 
 #include <memory>
 
@@ -21,10 +15,8 @@
 
 #include "eb_planner.h"
 
-QPPlanner::QPPlanner() : number_of_sampling_points_(150), is_solver_initialized_(false)
+QPPlanner::QPPlanner() : number_of_sampling_points_(150)
 {
-  solver_ptr_.reset(new qpOASES::QProblemB(number_of_sampling_points_ * 2));
-  solver_ptr_->setPrintLevel(qpOASES::PL_NONE);
 }
 
 QPPlanner::~QPPlanner()

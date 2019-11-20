@@ -59,11 +59,8 @@ public:
   
   
 private:
-  bool is_solver_initialized_;
   int number_of_sampling_points_;
 
-  std::unique_ptr<qpOASES::QProblemB> solver_ptr_;
-  
   bool prepareQP();
 
   double calculate2DDistace(const Eigen::Vector2d& point1,
