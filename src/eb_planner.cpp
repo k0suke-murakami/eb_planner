@@ -14,6 +14,9 @@
 
 #include <memory>
 
+#include "workspace.h"
+#include "osqp.h"
+
 #include "reference_path.h"
 
 
@@ -466,4 +469,10 @@ void QPPlanner::doPlan(
       out_waypoints.push_back(waypoint); 
     }
   }
+  
+  osqp_solve(&workspace);
+  std::cerr << "aaaa"  << std::endl;
+  std::cerr << workspace.solution->x[0] << std::endl;
+  std::cerr << workspace.solution->x[1] << std::endl;
+  // osqp_update_lower_bound(&workspace, )
 }
