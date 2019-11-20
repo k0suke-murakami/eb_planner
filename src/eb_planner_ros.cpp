@@ -44,6 +44,10 @@
 #include "calculate_center_line.h"
 #include "modified_reference_path_generator.h"
 
+#include "workspace.h"
+#include "osqp.h"
+
+
 #include "eb_planner_ros.h"
 
 double calculate2DDistace(const geometry_msgs::Point& point1,
@@ -234,6 +238,10 @@ void QPPlannerROS::objectsCallback(const autoware_msgs::DetectedObjectArray& msg
 
 void QPPlannerROS::timerCallback(const ros::TimerEvent &e)
 {
+  osqp_solve(&workspace);
+  std::cerr << "aaaa"  << std::endl;
+  std::cerr << workspace.solution->x[0] << std::endl;
+  std::cerr << workspace.solution->x[1] << std::endl;
   if(!in_pose_ptr_)
   {
     std::cerr << "pose not arrive" << std::endl;

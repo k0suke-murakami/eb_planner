@@ -484,7 +484,6 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   
   dt::DistanceTransform::distanceTransformL2(f, f, false, 1);
   
-
   for (dope::SizeType i = 0; i < size[0]; ++i)
   {
     for (dope::SizeType j = 0; j < size[1]; ++j)
@@ -503,13 +502,12 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   std::chrono::high_resolution_clock::time_point end1 = std::chrono::high_resolution_clock::now();
   // 経過時間を取得
   std::chrono::nanoseconds elapsed_time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
-  std::cout <<"only distance transform " <<elapsed_time1.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
+  std::cout <<"entire distance transform " <<elapsed_time1.count()/(1000.0*1000.0)<< " milli sec" << std::endl;
   
   // 1. 現在日時を取得
   std::chrono::high_resolution_clock::time_point begin_a_star_plus_rule_smooth = std::chrono::high_resolution_clock::now();
   
   clearance_map[layer_name] = grid_data;
-  // grid_map::GridMapRosConverter::toPointCloud(clearance_map, layer_name, debug_pointcloud_clearance_map);
 
   geometry_msgs::Point start_point_in_lidar_tf, goal_point_in_lidar_tf;
   tf2::doTransform(start_point, start_point_in_lidar_tf, map2lidar_tf);
@@ -521,11 +519,9 @@ bool ModifiedReferencePathGenerator::generateModifiedReferencePath(
   goal_p(0) = goal_point_in_lidar_tf.x; 
   goal_p(1) = goal_point_in_lidar_tf.y; 
   
-  // std::cerr << "initial start p " << start_p << std::endl;
   std::vector<Node> s_open;
   Node* a = new Node();
   Node initial_node;
-  // double clearance_to_m = 0.1;
   const double resolution_of_gridmap = clearance_map.getResolution();
   // const double min_r = 1.6;
   // const double min_r = 2.0;

@@ -48,6 +48,9 @@ if(ATTACH_SOURCES)
 target_sources(distance_transform INTERFACE ${all_hdr})
 endif()
 
+add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/lib/osqp)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/osqp/include)
+
 find_package(autoware_build_flags REQUIRED)
 
 
@@ -101,7 +104,8 @@ src/modified_reference_path_generator.cpp
 target_link_libraries(eb_planner
 # ${catkin_LIBRARIES}
 # ${CMAKE_DL_LIBS}
-distance_transform
+  distance_transform
+  emosqpstatic
 #   ${CMAKE_SOURCE_DIR}/lib/osqp-0.6.0-linux64/lib/libosqp.a
   ${catkin_LIBRARIES}
   ${CMAKE_SOURCE_DIR}/lib/osqp-0.6.0-linux64/lib/libosqp.a

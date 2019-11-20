@@ -297,7 +297,7 @@ void QPPlanner::doPlan(
   
   size_t min_index = 0;
   double min_dist = 99999;
-  for (size_t i = 0; i < subscribed_points_in_lidar.size(); i++)
+  for (size_t i = 0; i < 30; i++)
   {
     double dx = subscribed_points_in_lidar[i].x - reference_path.x_.front();
     double dy = subscribed_points_in_lidar[i].y - reference_path.y_.front();
@@ -325,7 +325,8 @@ void QPPlanner::doPlan(
   
   min_index = 0;
   min_dist = 99999;
-  for (size_t i = 0; i < subscribed_points_in_lidar.size(); i++)
+  // for (size_t i = 0; i < subscribed_points_in_lidar.size(); i++)
+  for (size_t i = 0; i < 30; i++)
   {
     double dx = subscribed_points_in_lidar[i].x - reference_path.x_.back();
     double dy = subscribed_points_in_lidar[i].y - reference_path.y_.back();
