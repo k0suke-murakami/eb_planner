@@ -406,31 +406,145 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
 
   int max_iter = 500;
 
-  std::chrono::high_resolution_clock::time_point begin3 = std::chrono::high_resolution_clock::now();
-  if (!is_solver_initialized_)
+  // std::chrono::high_resolution_clock::time_point begin3 = std::chrono::high_resolution_clock::now();
+  // if (!is_solver_initialized_)
+  // {
+  //   auto ret = solver_ptr_->init(h_matrix, g_matrix, lower_bound, upper_bound, max_iter);
+  //   is_solver_initialized_ = true;
+  // }
+  // else
+  // {
+  //   std::cerr << "warm start" << std::endl;
+  //   auto ret = solver_ptr_->hotstart(g_matrix, lower_bound, upper_bound, max_iter);
+  // }
+
+  // double result[number_of_sampling_points_];
+  // solver_ptr_->getPrimalSolution(result);
+
+  // // 経過時間を取得
+  // std::chrono::high_resolution_clock::time_point end3 = std::chrono::high_resolution_clock::now();
+  // std::chrono::nanoseconds elapsed_time3 = std::chrono::duration_cast<std::chrono::nanoseconds>(end3 - begin3);
+  // std::cout << "solve " << elapsed_time3.count() / (1000.0 * 1000.0) << " milli sec" << std::endl;
+
+
+
+
+  // for (size_t i = 0; i < number_of_sampling_points_; i++)
+  // {
+  //   geometry_msgs::Pose pose_in_lidar_tf;
+  //   pose_in_lidar_tf.position.x = result[i];
+  //   pose_in_lidar_tf.position.y = result[i + number_of_sampling_points_];
+  //   pose_in_lidar_tf.position.z = in_reference_waypoints_in_lidar.front().pose.pose.position.z;
+  //   pose_in_lidar_tf.orientation.w = 1.0;
+  //   geometry_msgs::Pose pose_in_map_tf;
+  //   tf2::doTransform(pose_in_lidar_tf, pose_in_map_tf, lidar2map_tf);
+  //   autoware_msgs::Waypoint waypoint;
+  //   waypoint.pose.pose = pose_in_map_tf;
+  //   if (pose_in_lidar_tf.position.x > 0)
+  //   {
+  //     out_waypoints.push_back(waypoint);
+  //   }
+  // }
+
+  // c_float float_lower_bound[number_of_sampling_points_ * 2];
+  // c_float float_upper_bound[number_of_sampling_points_ * 2];
+
+  // for (size_t i = 0; i < number_of_sampling_points_*2; i++)
+  // {
+  //   float_lower_bound[i] = lower_bound[i];
+  //   float_upper_bound[i] = upper_bound[i];
+  //   // std::cerr << "floar lower " <<float_lower_bound[i] << std::endl;
+  //   // float_lower_bound[i+number_of_sampling_points_] = lower_bound[i+number_of_sampling_points_];
+  //   // float_upper_bound[i+number_of_sampling_points_] = upper_bound[i+number_of_sampling_points_];
+  // }
+  // std::cerr << "float low b 0 " << float_lower_bound[0] << std::endl;
+  // std::cerr << "float up u 0 " << float_upper_bound[0] << std::endl;
+  
+  for (int i = 0; i < number_of_sampling_points_ * 2; ++i)
   {
-    auto ret = solver_ptr_->init(h_matrix, g_matrix, lower_bound, upper_bound, max_iter);
-    is_solver_initialized_ = true;
+    if (i == 0)
+    {
+      lower_bound[i] = reference_path.x_[i];
+      upper_bound[i] = reference_path.x_[i];
+    }
+    else if (i == 1)
+    {
+      // lower_bound[i] = reference_path.x_[i];
+      // upper_bound[i] = reference_path.x_[i];
+      lower_bound[i] = reference_path.x_[i - 1] + 0.2 * std::cos(first_yaw);
+      upper_bound[i] = reference_path.x_[i - 1] + 0.2 * std::cos(first_yaw);
+    }
+    else if (i == number_of_sampling_points_ - 2)
+    {
+      // lower_bound[i] = reference_path.x_[i];
+      // upper_bound[i] = reference_path.x_[i];
+      lower_bound[i] = reference_path.x_[i + 1] - 0.2 * std::cos(last_yaw);
+      upper_bound[i] = reference_path.x_[i + 1] - 0.2 * std::cos(last_yaw);
+    }
+    else if (i == number_of_sampling_points_ - 1)
+    {
+      lower_bound[i] = reference_path.x_[i];
+      upper_bound[i] = reference_path.x_[i];
+    }
+    else if (i == number_of_sampling_points_)
+    {
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+    }
+    else if (i == number_of_sampling_points_ + 1)
+    {
+      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
+    }
+    else if (i == number_of_sampling_points_ * 2 - 2)
+    {
+      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_ + 1] - 0.2 * std::sin(last_yaw);
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_ + 1] - 0.2 * std::sin(last_yaw);
+    }
+    else if (i == number_of_sampling_points_ * 2 - 1)
+    {
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+    }
+    else
+    {
+      if (i < number_of_sampling_points_)
+      {
+        lower_bound[i] = reference_path.x_[i] - 0.5;
+        upper_bound[i] = reference_path.x_[i] + 0.5;
+      }
+      else
+      {
+        lower_bound[i] = reference_path.y_[i - number_of_sampling_points_] - 0.5;
+        upper_bound[i] = reference_path.y_[i - number_of_sampling_points_] + 0.5;
+      }
+    }
+    // lower_bound[i]=-1000;
+    // upper_bound[i]=1000;
   }
-  else
-  {
-    std::cerr << "warm start" << std::endl;
-    auto ret = solver_ptr_->hotstart(g_matrix, lower_bound, upper_bound, max_iter);
-  }
+  std::chrono::high_resolution_clock::time_point begin4 = std::chrono::high_resolution_clock::now();
+  
+  c_int a = osqp_update_bounds(&workspace, lower_bound, upper_bound);
+  c_int b = osqp_solve(&workspace);
+  std::chrono::high_resolution_clock::time_point end4 = std::chrono::high_resolution_clock::now();
+  std::chrono::nanoseconds elapsed_time4 = std::chrono::duration_cast<std::chrono::nanoseconds>(end4 - begin4);
+  std::cout << "e-osqp solve " << elapsed_time4.count() / (1000.0 * 1000.0) << " milli sec" << std::endl;
 
-  double result[number_of_sampling_points_];
-  solver_ptr_->getPrimalSolution(result);
-
-  // 経過時間を取得
-  std::chrono::high_resolution_clock::time_point end3 = std::chrono::high_resolution_clock::now();
-  std::chrono::nanoseconds elapsed_time3 = std::chrono::duration_cast<std::chrono::nanoseconds>(end3 - begin3);
-  std::cout << "solve " << elapsed_time3.count() / (1000.0 * 1000.0) << " milli sec" << std::endl;
-
+  printf("Status:                %s\n", (&workspace)->info->status);
+  printf("Number of iterations:  %d\n", (int)((&workspace)->info->iter));
+  printf("Objective value:       %.4e\n", (&workspace)->info->obj_val);
+  std::cerr << (&workspace)->solution->x[0] << std::endl;
+  std::cerr << (&workspace)->solution->x[0+number_of_sampling_points_] << std::endl;
   for (size_t i = 0; i < number_of_sampling_points_; i++)
   {
     geometry_msgs::Pose pose_in_lidar_tf;
-    pose_in_lidar_tf.position.x = result[i];
-    pose_in_lidar_tf.position.y = result[i + number_of_sampling_points_];
+    pose_in_lidar_tf.position.x = workspace.solution->x[i];
+    pose_in_lidar_tf.position.y = workspace.solution->x[i + number_of_sampling_points_];
+    // std::cerr << "pose " << pose_in_lidar_tf.position.x <<" "<<pose_in_lidar_tf.position.y << std::endl;
     pose_in_lidar_tf.position.z = in_reference_waypoints_in_lidar.front().pose.pose.position.z;
     pose_in_lidar_tf.orientation.w = 1.0;
     geometry_msgs::Pose pose_in_map_tf;
@@ -442,59 +556,4 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
       out_waypoints.push_back(waypoint);
     }
   }
-
-//   // c_float float_lower_bound[number_of_sampling_points_ * 2];
-//   // c_float float_upper_bound[number_of_sampling_points_ * 2];
-
-//   // for (size_t i = 0; i < number_of_sampling_points_*2; i++)
-//   // {
-//   //   float_lower_bound[i] = lower_bound[i];
-//   //   float_upper_bound[i] = upper_bound[i];
-//   //   // std::cerr << "floar lower " <<float_lower_bound[i] << std::endl;
-//   //   // float_lower_bound[i+number_of_sampling_points_] = lower_bound[i+number_of_sampling_points_];
-//   //   // float_upper_bound[i+number_of_sampling_points_] = upper_bound[i+number_of_sampling_points_];
-//   // }
-//   std::cerr << "float low b 0 " << float_lower_bound[0] << std::endl;
-//   std::cerr << "float up u 0 " << float_upper_bound[0] << std::endl;
-//   std::cerr << "low b 0 " << lower_bound[0] << std::endl;
-//   std::cerr << "low u 0 " << upper_bound[0] << std::endl;
-//   std::chrono::high_resolution_clock::time_point begin4 = std::chrono::high_resolution_clock::now();
-//   // osqp_update_lower_bound(&workspace, float_lower_bound);
-//   // osqp_update_upper_bound(&workspace, float_upper_bound);
-  
-//   c_int a = osqp_update_bounds(&workspace, lower_bound, upper_bound);
-// std::cerr << "flag update " << a << std::endl;
-//   c_int b = osqp_solve(&workspace);
-//   std::cerr << "flag solve " << b << std::endl;
-//   std::chrono::high_resolution_clock::time_point end4 = std::chrono::high_resolution_clock::now();
-//   std::chrono::nanoseconds elapsed_time4 = std::chrono::duration_cast<std::chrono::nanoseconds>(end4 - begin4);
-//   std::cout << "e-osqp solve " << elapsed_time4.count() / (1000.0 * 1000.0) << " milli sec" << std::endl;
-
-//   printf("Status:                %s\n", (&workspace)->info->status);
-//   printf("Number of iterations:  %d\n", (int)((&workspace)->info->iter));
-//   printf("Objective value:       %.4e\n", (&workspace)->info->obj_val);
-//   printf("Primal residual:       %.4e\n", (&workspace)->info->pri_res);
-//   printf("Dual residual:         %.4e\n", (&workspace)->info->dua_res);
-//   // std::cerr << (&workspace)->solution->x[0] << std::endl;
-//   // std::cerr << (&workspace)->solution->x[1] << std::endl;
-//   // std::cerr << result[0] << std::endl;
-//   // std::cerr << result[1] << std::endl;
-//   // osqp_update_lower_bound(&workspace, )
-//   for (size_t i = 0; i < number_of_sampling_points_; i++)
-//   {
-//     geometry_msgs::Pose pose_in_lidar_tf;
-//     pose_in_lidar_tf.position.x = workspace.solution->x[i];
-//     pose_in_lidar_tf.position.y = workspace.solution->x[i + number_of_sampling_points_];
-//     // std::cerr << "pose " << pose_in_lidar_tf.position.x <<" "<<pose_in_lidar_tf.position.y << std::endl;
-//     pose_in_lidar_tf.position.z = in_reference_waypoints_in_lidar.front().pose.pose.position.z;
-//     pose_in_lidar_tf.orientation.w = 1.0;
-//     geometry_msgs::Pose pose_in_map_tf;
-//     tf2::doTransform(pose_in_lidar_tf, pose_in_map_tf, lidar2map_tf);
-//     autoware_msgs::Waypoint waypoint;
-//     waypoint.pose.pose = pose_in_map_tf;
-//     if (pose_in_lidar_tf.position.x > 0)
-//     {
-//       out_waypoints.push_back(waypoint);
-//     }
-//   }
 }

@@ -85,9 +85,9 @@ QPPlannerROS::QPPlannerROS()
   objects_sub_ = nh_.subscribe("/detection/lidar_detector/objects", 1, &QPPlannerROS::objectsCallback, this);
   grid_map_sub_ = nh_.subscribe("/semantics/costmap", 1, &QPPlannerROS::gridmapCallback, this);
   // double timer_callback_dt = 0.05;
-  // double timer_callback_delta_second = 0.1;
+  double timer_callback_delta_second = 0.1;
   // double timer_callback_delta_second = 1.0;
-  double timer_callback_delta_second = 0.5;
+  // double timer_callback_delta_second = 0.5;
   timer_ = nh_.createTimer(ros::Duration(timer_callback_delta_second), &QPPlannerROS::timerCallback, this);
 }
 
