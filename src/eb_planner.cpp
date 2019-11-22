@@ -134,6 +134,18 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
       lower_bound[i] = reference_path.x_[i - 1] + 0.2 * std::cos(first_yaw);
       upper_bound[i] = reference_path.x_[i - 1] + 0.2 * std::cos(first_yaw);
     }
+    else if (i == number_of_sampling_points_)
+    {
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+    }
+    else if (i == number_of_sampling_points_ + 1)
+    {
+      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
+      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
+      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
+    }
     else if (i == number_of_sampling_points_ - 2)
     {
       // lower_bound[i] = reference_path.x_[i];
@@ -150,13 +162,6 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
     {
       lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
       upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
-    }
-    else if (i == number_of_sampling_points_ + 1)
-    {
-      // lower_bound[i] = reference_path.y_[i - number_of_sampling_points_];
-      // upper_bound[i] = reference_path.y_[i - number_of_sampling_points_];
-      lower_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
-      upper_bound[i] = reference_path.y_[i - number_of_sampling_points_ - 1] + 0.2 * std::sin(first_yaw);
     }
     else if (i == number_of_sampling_points_ * 2 - 2)
     {
@@ -184,6 +189,60 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
       }
     }
   }
+  
+  // if(previous_points_in_lidar_ptr_)
+  // {
+  //   for (int i = 0; i < number_of_sampling_points_ * 2; ++i)
+  //   {
+  //     if(i < 20)
+  //     {
+  //       lower_bound[i] = reference_path.x_[i];
+  //       upper_bound[i] = reference_path.x_[i];
+  //     }
+  //     else if(i >= number_of_sampling_points_ && 
+  //             i < number_of_sampling_points_+20)
+  //     {
+  //       lower_bound[i] = reference_path.y_[i- number_of_sampling_points_];
+  //       upper_bound[i] = reference_path.y_[i- number_of_sampling_points_];
+  //       // lower_bound[i] = reference_path.y_[i-number_of_sampling_points_];
+  //       // upper_bound[i] = reference_path.y_[i-number_of_sampling_points_];
+  //     }
+  //     else if (i == number_of_sampling_points_ - 2)
+  //     {
+  //       lower_bound[i] = reference_path.x_[i+1] - 0.2 * std::cos(last_yaw);
+  //       upper_bound[i] = reference_path.x_[i+1] - 0.2 * std::cos(last_yaw);
+  //     }
+  //     else if (i == number_of_sampling_points_ - 1)
+  //     {
+  //       lower_bound[i] = reference_path.x_[i];
+  //       upper_bound[i] = reference_path.x_[i];
+  //     }
+  //     else if (i == number_of_sampling_points_ * 2 - 2)
+  //     {
+  //       lower_bound[i] = reference_path.y_[i-number_of_sampling_points_+1]  - 0.2 * std::sin(last_yaw);
+  //       upper_bound[i] = reference_path.y_[i-number_of_sampling_points_+1]  - 0.2 * std::sin(last_yaw);
+  //     }
+  //     else if (i == number_of_sampling_points_ * 2 - 1)
+  //     {
+  //       lower_bound[i] = reference_path.y_[i-number_of_sampling_points_];
+  //       upper_bound[i] = reference_path.y_[i-number_of_sampling_points_];
+  //     }
+  //     else
+  //     {
+  //       if (i < number_of_sampling_points_)
+  //       {
+  //         lower_bound[i] = reference_path.x_[i] - 0.5;
+  //         upper_bound[i] = reference_path.x_[i] + 0.5;
+  //       }
+  //       else
+  //       {
+  //         lower_bound[i] = reference_path.y_[i-number_of_sampling_points_] - 0.5;
+  //         upper_bound[i] = reference_path.y_[i-number_of_sampling_points_] + 0.5;
+  //       }
+  //     }
+  //   }
+  // }
+  
   std::chrono::high_resolution_clock::time_point begin4 = std::chrono::high_resolution_clock::now();
   
   c_int a = osqp_update_bounds(&workspace, lower_bound, upper_bound);
@@ -195,12 +254,14 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
   printf("Status:                %s\n", (&workspace)->info->status);
   printf("Number of iterations:  %d\n", (int)((&workspace)->info->iter));
   printf("Objective value:       %.4e\n", (&workspace)->info->obj_val);
+  std::vector<geometry_msgs::Point> previous_points;
   for (size_t i = 0; i < number_of_sampling_points_; i++)
   {
     geometry_msgs::Pose pose_in_lidar_tf;
     pose_in_lidar_tf.position.x = workspace.solution->x[i];
     pose_in_lidar_tf.position.y = workspace.solution->x[i + number_of_sampling_points_];
     pose_in_lidar_tf.position.z = in_reference_waypoints_in_lidar.front().pose.pose.position.z;
+    previous_points.push_back(pose_in_lidar_tf.position);
     pose_in_lidar_tf.orientation.w = 1.0;
     geometry_msgs::Pose pose_in_map_tf;
     tf2::doTransform(pose_in_lidar_tf, pose_in_map_tf, lidar2map_tf);
@@ -211,4 +272,5 @@ void QPPlanner::doPlan(const geometry_msgs::TransformStamped& lidar2map_tf,
       out_waypoints.push_back(waypoint);
     }
   }
+  previous_points_in_lidar_ptr_.reset(new std::vector<geometry_msgs::Point>(previous_points));
 }

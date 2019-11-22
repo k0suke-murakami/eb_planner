@@ -60,6 +60,7 @@ public:
   
 private:
   int number_of_sampling_points_;
+  std::unique_ptr<std::vector<geometry_msgs::Point>> previous_points_in_lidar_ptr_;
 
   bool prepareQP();
 
